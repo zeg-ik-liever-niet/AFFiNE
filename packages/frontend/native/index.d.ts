@@ -66,6 +66,20 @@ export interface RecordingStartOptions {
 export declare function startRecording(opts: RecordingStartOptions): Promise<RecordingSessionMeta>
 
 export declare function stopRecording(id: string): Promise<RecordingArtifact>
+export declare class DiskSync {
+  constructor()
+  startSession(sessionId: string, options: DiskSessionOptions): Promise<void>
+  stopSession(sessionId: string): Promise<void>
+  applyLocalUpdate(sessionId: string, update: DiskDocUpdateInput): Promise<DiskDocClock>
+  acknowledgeSourceUpdate(sessionId: string, docId: string, snapshot: Uint8Array): Promise<void>
+  prepareSourceDoc(sessionId: string, docId: string, localSnapshot?: Uint8Array | undefined | null, localRoot?: Uint8Array | undefined | null): Promise<Uint8Array | null>
+  subscribeEvents(sessionId: string, callback: ((err: Error | null, arg: DiskSyncEvent) => void)): Promise<DiskSyncSubscriber>
+}
+
+export declare class DiskSyncSubscriber {
+  unsubscribe(): Promise<void>
+}
+
 export declare function cancelImportSession(sessionId: string): void
 
 export interface CreateImportBatchLimits {
@@ -85,6 +99,39 @@ export interface CreateImportSessionOptions {
 export interface CreateImportSessionSource {
   kind: string
   path: string
+}
+
+export interface DiskDocClock {
+  docId: string
+  timestamp: Date
+  reviewRequired?: string
+}
+
+export interface DiskDocUpdateInput {
+  docId: string
+  bin: Uint8Array
+  editor?: string
+}
+
+export interface DiskSessionOptions {
+  workspaceId: string
+  syncFolder: string
+}
+
+export interface DiskSyncDocUpdateEvent {
+  docId: string
+  bin: Uint8Array
+  timestamp: Date
+  editor?: string
+}
+
+export interface DiskSyncEvent {
+  type: string
+  update?: DiskSyncDocUpdateEvent
+  docId?: string
+  timestamp?: Date
+  origin?: string
+  message?: string
 }
 
 export declare function disposeImportSession(sessionId: string): void

@@ -209,11 +209,13 @@ dependencies = [
  "onenote_parser",
  "serde_json",
  "sha2 0.11.0",
+ "sha3 0.12.0",
  "sqlx",
  "thiserror 2.0.18",
  "tokio",
  "typed-path",
  "uuid",
+ "y-octo",
  "zip",
 ]
 

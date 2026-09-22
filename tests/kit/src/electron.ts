@@ -373,7 +373,9 @@ export const test = base.extend<{
         }
       }
       env.DEBUG = 'pw:browser';
+      delete env.ELECTRON_RUN_AS_NODE;
       env.SKIP_ONBOARDING = '1';
+      env.AFFINE_E2E = env.AFFINE_E2E || '1';
 
       const launch = () =>
         electron.launch({

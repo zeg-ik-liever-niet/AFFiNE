@@ -186,6 +186,29 @@ export class DocSyncPeer {
   };
   private readonly statusUpdatedSubject$ = new Subject<string | true>();
 
+  private async acknowledgeRemoteSourceUpdate(docId: string) {
+    if (!this.remote.acknowledgeDocUpdate) {
+      return;
+    }
+    const local = await this.local.getDoc(docId);
+    if (local) {
+      await this.remote.acknowledgeDocUpdate(docId, local.bin);
+    }
+  }
+
+  private async prepareRemoteDoc(docId: string) {
+    if (!this.remote.prepareDocImport) {
+      return;
+    }
+    const local = await this.local.getDoc(docId);
+    const root = await this.local.getDoc(this.local.spaceId);
+    await this.remote.prepareDocImport(
+      docId,
+      local?.bin ?? null,
+      root?.bin ?? null
+    );
+  }
+
   private get currentErrorMessage() {
     return (
       this.status.errorMessage ??
@@ -272,6 +295,7 @@ export class DocSyncPeer {
 
   private readonly jobs = createJobErrorCatcher({
     connect: async (docId: string, signal?: AbortSignal) => {
+      await this.prepareRemoteDoc(docId);
       const pushedClock =
         (await this.syncMetadata.getPeerPushedClock(this.peerId, docId))
           ?.timestamp ?? null;
@@ -367,6 +391,7 @@ export class DocSyncPeer {
           },
           this.uniqueId
         );
+        await this.acknowledgeRemoteSourceUpdate(docId);
         throwIfAborted(signal);
         await this.syncMetadata.setPeerPulledRemoteClock(this.peerId, {
           docId,
@@ -404,6 +429,7 @@ export class DocSyncPeer {
         });
       } else {
         if (localDocRecord) {
+          await this.acknowledgeRemoteSourceUpdate(docId);
           if (!isEmptyUpdate(localDocRecord.bin)) {
             throwIfAborted(signal);
             const { timestamp: remoteClock } = await this.remote.pushDocUpdate(
@@ -432,6 +458,7 @@ export class DocSyncPeer {
       }
     },
     pull: async (docId: string, signal?: AbortSignal) => {
+      await this.prepareRemoteDoc(docId);
       const docRecord = await this.local.getDoc(docId);
 
       const stateVector =
@@ -440,6 +467,7 @@ export class DocSyncPeer {
           : new Uint8Array();
       const serverDoc = await this.remote.getDocDiff(docId, stateVector);
       if (!serverDoc) {
+        await this.acknowledgeRemoteSourceUpdate(docId);
         return;
       }
       const { missing: newData, timestamp: remoteClock } = serverDoc;
@@ -451,6 +479,7 @@ export class DocSyncPeer {
         },
         this.uniqueId
       );
+      await this.acknowledgeRemoteSourceUpdate(docId);
       throwIfAborted(signal);
       await this.syncMetadata.setPeerPulledRemoteClock(this.peerId, {
         docId,
@@ -489,6 +518,7 @@ export class DocSyncPeer {
             },
             this.uniqueId
           );
+          await this.acknowledgeRemoteSourceUpdate(docId);
 
           // schedule push job to mark the timestamp as pushed timestamp
           this.schedule({

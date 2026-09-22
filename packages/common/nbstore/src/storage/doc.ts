@@ -89,6 +89,15 @@ export interface DocStorage extends Storage {
    * @param origin - Internal identifier to recognize the source in the "update" event. Will not be stored or transferred.
    */
   pushDocUpdate(update: DocUpdate, origin?: string): Promise<DocClock>;
+  prepareDocImport?(
+    docId: string,
+    localSnapshot: Uint8Array | null,
+    localRoot: Uint8Array | null
+  ): Promise<void>;
+  acknowledgeDocUpdate?(
+    docId: string,
+    localSnapshot: Uint8Array
+  ): Promise<void>;
 
   /**
    * Get the timestamp of the latest update of a doc.
